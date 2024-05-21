@@ -1,4 +1,5 @@
 import numpy as np
+import dill
 import os
 import ntpath
 
@@ -6,14 +7,51 @@ import ntpath
 def fill_mesh(mesh2fill, file: str, opt):
     load_path = get_mesh_path(file, opt.num_aug)
     if os.path.exists(load_path):
-        mesh_data = np.load(load_path, encoding='latin1', allow_pickle=True)
+        #mesh_data = np.load(load_path, encoding='latin1', allow_pickle=True)
+        # Carregar dados
+        with open(load_path, 'rb') as f:
+            try:
+                mesh_data = dill.load(f)
+            except EOFError:
+                print("Error loading pickled data:")
+                dill.detect.badpickle(f)
     else:
         mesh_data = from_scratch(file, opt)
+
+        try:
+            """
+            print("Mesh Data Properties:")
+            print("  gemm_edges:", type(mesh_data.gemm_edges), mesh_data.gemm_edges.shape if hasattr(mesh_data.gemm_edges, 'shape') else None)
+            print("  vs:", type(mesh_data.vs), mesh_data.vs.shape if hasattr(mesh_data.vs, 'shape') else None)
+            print("  edges:", type(mesh_data.edges), mesh_data.edges.shape if hasattr(mesh_data.edges, 'shape') else None)
+            print("  edges_count:", type(mesh_data.edges_count), None)
+            print("  ve:", type(mesh_data.ve), mesh_data.ve.shape if hasattr(mesh_data.ve, 'shape') else None)
+            print("  v_mask:", type(mesh_data.v_mask), mesh_data.v_mask.shape if hasattr(mesh_data.v_mask, 'shape') else None)
+            print("  filename:", type(mesh_data.filename), None)
+            print("  sides:", type(mesh_data.sides), mesh_data.sides.shape if hasattr(mesh_data.sides, 'shape') else None)
+            print("  edge_lengths:", type(mesh_data.edge_lengths), mesh_data.edge_lengths.shape if hasattr(mesh_data.edge_lengths, 'shape') else None)
+            print("  edge_areas:", type(mesh_data.edge_areas), mesh_data.edge_areas.shape if hasattr(mesh_data.edge_areas, 'shape') else None)
+            print("  features:", type(mesh_data.features), mesh_data.features.shape if hasattr(mesh_data.features, 'shape') else None)
+            """
+
+        except Exception as err:
+            print("erro lendo mesh data: ", err)
+            print(" encerrando o programa.")
+            exit()
+        """
         np.savez_compressed(load_path, gemm_edges=mesh_data.gemm_edges, vs=mesh_data.vs, edges=mesh_data.edges,
                             edges_count=mesh_data.edges_count, ve=mesh_data.ve, v_mask=mesh_data.v_mask,
                             filename=mesh_data.filename, sides=mesh_data.sides,
                             edge_lengths=mesh_data.edge_lengths, edge_areas=mesh_data.edge_areas,
                             features=mesh_data.features)
+        """
+        # saving with pickle dump
+        # Salvar dados
+        with open(load_path, 'wb') as f:
+            dill.dump(mesh_data, f)
+
+
+
     mesh2fill.vs = mesh_data['vs']
     mesh2fill.edges = mesh_data['edges']
     mesh2fill.gemm_edges = mesh_data['gemm_edges']
